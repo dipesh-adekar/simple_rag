@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Documents — Local RAG{% endblock %}
+
+{% block content %}
+<section class="card">
+  <div class="card-header">
+    <h1>Uploaded PDFs</h1>
+    <a href="/" class="btn btn-secondary">Upload another</a>
+  </div>
+
+  {% if documents %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Filename</th>
+        <th>Size</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for doc in documents %}
+      <tr>
+        <td>{{ doc.filename }}</td>
+        <td>{{ doc.size_display }}</td>
+        <td>
+          <form action="/documents/{{ doc.filename }}/delete" method="post" onsubmit="return confirm('Delete {{ doc.filename }}?');">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No documents indexed yet. <a href="/">Upload a PDF</a> to get started.</p>
+  {% endif %}
+</section>
+{% endblock %}

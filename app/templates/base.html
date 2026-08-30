@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Local RAG{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="container header-inner">
+      <a href="/" class="logo">Local RAG</a>
+      <nav class="nav">
+        <a href="/" class="nav-link {% if active == 'upload' %}active{% endif %}">Upload</a>
+        <a href="/documents" class="nav-link {% if active == 'documents' %}active{% endif %}">Documents</a>
+        <a href="/chat" class="nav-link {% if active == 'chat' %}active{% endif %}">Chat</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>
