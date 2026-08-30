@@ -7,32 +7,37 @@
   <h1>Chat with your documents</h1>
   <p class="muted">Ask questions against all uploaded PDFs using qwen2.5:14b.</p>
 
-  <div class="chat-messages">
-    {% for message in messages %}
-      <div class="message message-{{ message.role }}">
-        <div class="message-role">{{ message.role }}</div>
-        <div class="message-content">{{ message.content }}</div>
-        {% if message.sources %}
-        <div class="message-meta">
-          Sources: {{ message.sources | join(", ") }}
-          · {{ message.context_chunks }} chunk(s) retrieved
-        </div>
-        {% endif %}
-      </div>
-    {% else %}
-      <p class="muted">No messages yet. Ask something about your uploaded PDFs.</p>
-    {% endfor %}
+  <div id="chat-messages" class="chat-messages">
+    <p class="muted chat-empty">No messages yet. Ask something about your uploaded PDFs.</p>
   </div>
 
-  <form action="/chat" method="post" class="chat-form">
+  <form id="chat-form" class="chat-form">
     <textarea
+      id="question"
       name="question"
       rows="3"
       placeholder="What does the document say about..."
       required
       class="input chat-input"
     ></textarea>
-    <button type="submit" class="btn btn-primary">Ask</button>
+
+    <div class="chat-controls">
+      <div class="mode-toggle" role="radiogroup" aria-label="Response mode">
+        <label class="mode-option">
+          <input type="radio" name="mode" value="stream" checked>
+          <span>Stream</span>
+        </label>
+        <label class="mode-option">
+          <input type="radio" name="mode" value="normal">
+          <span>Normal</span>
+        </label>
+      </div>
+      <button type="submit" class="btn btn-primary" id="chat-submit">Ask</button>
+    </div>
   </form>
 </section>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/chat.js"></script>
 {% endblock %}

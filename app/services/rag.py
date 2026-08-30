@@ -25,16 +25,35 @@ def get_llm() -> ChatOllama:
     )
 
 
-def query_documents(question: str) -> dict:
+def retrieve_context(question: str) -> tuple[str, list, list[str]]:
     retriever = get_retriever()
     docs = retriever.invoke(question)
     context = "\n\n".join(doc.page_content for doc in docs)
+    sources = sorted({doc.metadata.get("source", "unknown") for doc in docs})
+    return context, docs, sources
+
+
+def query_documents(question: str) -> dict:
+    context, docs, sources = retrieve_context(question)
     prompt = RAG_PROMPT.format(context=context, question=question)
     llm = get_llm()
     answer = llm.invoke(prompt).content
-    sources = sorted({doc.metadata.get("source", "unknown") for doc in docs})
     return {
         "answer": answer,
+        "sources": sources,
+        "context_chunks": len(docs),
+    }
+
+
+async def stream_answer(question: str):
+    context, docs, sources = retrieve_context(question)
+    prompt = RAG_PROMPT.format(context=context, question=question)
+    llm = get_llm()
+    async for chunk in llm.astream(prompt):
+        if chunk.content:
+            yield {"type": "token", "content": chunk.content}
+    yield {
+        "type": "done",
         "sources": sources,
         "context_chunks": len(docs),
     }
