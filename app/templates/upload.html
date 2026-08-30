@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Upload PDF — Local RAG{% endblock %}
+{% block title %}Upload — Local RAG{% endblock %}
 
 {% block content %}
 <section class="card">
-  <h1>Upload PDF</h1>
-  <p class="muted">Upload a PDF to index it with Ollama embeddings and query it in chat.</p>
+  <h1>Upload document</h1>
+  <p class="muted">Upload a PDF, text file, Markdown, or DOCX to index it with Ollama embeddings and query it in chat.</p>
 
   {% if error %}
   <div class="alert alert-error">{{ error }}</div>
@@ -15,8 +15,15 @@
   {% endif %}
 
   <form action="/upload" method="post" enctype="multipart/form-data" class="form">
-    <label for="file" class="label">Choose PDF file</label>
-    <input id="file" name="file" type="file" accept=".pdf,application/pdf" required class="input">
+    <label for="file" class="label">Choose file</label>
+    <input
+      id="file"
+      name="file"
+      type="file"
+      accept=".pdf,.txt,.md,.docx,application/pdf,text/plain,text/markdown,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+      required
+      class="input"
+    >
     <button type="submit" class="btn btn-primary">Upload &amp; Index</button>
   </form>
 </section>

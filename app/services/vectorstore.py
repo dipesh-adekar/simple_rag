@@ -42,6 +42,15 @@ def list_indexed_documents() -> list[dict]:
     vectorstore = get_vectorstore()
     collection = vectorstore._collection
     results = collection.get(include=["metadatas"])
+
+    chunk_counts: dict[str, int] = {}
+    for metadata in results.get("metadatas") or []:
+        if not metadata:
+            continue
+        source = metadata.get("source")
+        if source:
+            chunk_counts[source] = chunk_counts.get(source, 0) + 1
+
     seen: dict[str, dict] = {}
     for metadata in results.get("metadatas") or []:
         if not metadata:
@@ -53,9 +62,14 @@ def list_indexed_documents() -> list[dict]:
         seen[source] = {
             "filename": source,
             "size_bytes": file_path.stat().st_size if file_path.exists() else 0,
+            "chunk_count": chunk_counts.get(source, 0),
         }
     return sorted(seen.values(), key=lambda item: item["filename"].lower())
 
 
-def get_retriever():
-    return get_vectorstore().as_retriever(search_kwargs={"k": settings.retrieval_k})
+def search_with_scores(question: str, source: str | None = None) -> list[tuple[Document, float]]:
+    vectorstore = get_vectorstore()
+    kwargs: dict = {"k": settings.retrieval_k}
+    if source:
+        kwargs["filter"] = {"source": source}
+    return vectorstore.similarity_search_with_score(question, **kwargs)
