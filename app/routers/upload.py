@@ -2,11 +2,13 @@ from fastapi import APIRouter, File, Request, UploadFile
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
-from app.services.pdf_processor import load_and_split_pdf
+from app.services.document_processor import is_supported, load_and_split_document
 from app.services.vectorstore import index_documents
 
 router = APIRouter()
 templates = Jinja2Templates(directory=str(settings.base_dir / "app" / "templates"))
+
+SUPPORTED_LABEL = "PDF, TXT, Markdown, or DOCX"
 
 
 @router.get("/")
@@ -19,14 +21,14 @@ async def upload_page(request: Request):
 
 
 @router.post("/upload")
-async def upload_pdf(request: Request, file: UploadFile = File(...)):
-    if not file.filename or not file.filename.lower().endswith(".pdf"):
+async def upload_document(request: Request, file: UploadFile = File(...)):
+    if not file.filename or not is_supported(file.filename):
         return templates.TemplateResponse(
             request,
             "upload.html",
             {
                 "active": "upload",
-                "error": "Only PDF files are supported.",
+                "error": f"Only {SUPPORTED_LABEL} files are supported.",
             },
             status_code=400,
         )
@@ -46,7 +48,7 @@ async def upload_pdf(request: Request, file: UploadFile = File(...)):
     content = await file.read()
     destination.write_bytes(content)
 
-    chunks = load_and_split_pdf(destination)
+    chunks = load_and_split_document(destination)
     chunk_count = index_documents(chunks)
 
     return templates.TemplateResponse(

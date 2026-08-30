@@ -5,7 +5,7 @@
 {% block content %}
 <section class="card">
   <div class="card-header">
-    <h1>Uploaded PDFs</h1>
+    <h1>Uploaded documents</h1>
     <a href="/" class="btn btn-secondary">Upload another</a>
   </div>
 
@@ -15,6 +15,7 @@
       <tr>
         <th>Filename</th>
         <th>Size</th>
+        <th>Chunks</th>
         <th></th>
       </tr>
     </thead>
@@ -23,6 +24,7 @@
       <tr>
         <td>{{ doc.filename }}</td>
         <td>{{ doc.size_display }}</td>
+        <td>{{ doc.chunk_count }}</td>
         <td>
           <form action="/documents/{{ doc.filename }}/delete" method="post" onsubmit="return confirm('Delete {{ doc.filename }}?');">
             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
@@ -33,7 +35,7 @@
     </tbody>
   </table>
   {% else %}
-  <p class="muted">No documents indexed yet. <a href="/">Upload a PDF</a> to get started.</p>
+  <p class="muted">No documents indexed yet. <a href="/">Upload a document</a> to get started.</p>
   {% endif %}
 </section>
 {% endblock %}

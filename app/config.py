@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
     retrieval_k: int = 4
+    max_retrieval_distance: float = 1.0
 
     base_dir: Path = Path(__file__).resolve().parent.parent
     upload_dir: Path = base_dir / "data" / "uploads"

@@ -5,13 +5,21 @@
 {% block content %}
 <section class="card chat-card">
   <h1>Chat with your documents</h1>
-  <p class="muted">Ask questions against all uploaded PDFs using qwen2.5:14b.</p>
+  <p class="muted">Ask questions against your uploaded documents using qwen2.5:14b.</p>
 
   <div id="chat-messages" class="chat-messages">
-    <p class="muted chat-empty">No messages yet. Ask something about your uploaded PDFs.</p>
+    <p class="muted chat-empty">No messages yet. Ask something about your uploaded documents.</p>
   </div>
 
   <form id="chat-form" class="chat-form">
+    <label for="source" class="label">Search in</label>
+    <select id="source" name="source" class="input">
+      <option value="">All documents</option>
+      {% for doc in documents %}
+      <option value="{{ doc.filename }}">{{ doc.filename }}</option>
+      {% endfor %}
+    </select>
+
     <textarea
       id="question"
       name="question"
