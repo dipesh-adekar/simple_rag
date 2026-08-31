@@ -119,3 +119,44 @@ def test_unsupported_upload_is_rejected(client):
     )
     assert response.status_code == 400
     assert "supported" in response.text.lower()
+
+
+def test_upload_rejects_oversized_file(client, monkeypatch):
+    monkeypatch.setattr("app.config.settings.max_upload_size_mb", 1)
+
+    large_content = "x" * (1024 * 1024 + 1)
+    response = client.post(
+        "/upload",
+        files={"file": ("large.txt", large_content.encode(), "text/plain")},
+    )
+    assert response.status_code == 400
+    assert "too large" in response.text.lower()
+
+
+def test_upload_rejects_empty_file(client):
+    response = client.post(
+        "/upload",
+        files={"file": ("empty.txt", b"   ", "text/plain")},
+    )
+    assert response.status_code == 400
+    assert "empty" in response.text.lower()
+
+
+def test_health_endpoint(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["status"] == "ok"
+    assert data["ollama"] in {"ok", "unreachable", "error"}
+
+
+def test_chat_without_documents_is_blocked(client):
+    response = client.post("/chat/query", json={"question": "Hello?"})
+    assert response.status_code == 400
+    assert "no documents" in response.json()["detail"].lower()
+
+
+def test_chat_page_shows_empty_state(client):
+    response = client.get("/chat")
+    assert response.status_code == 200
+    assert "No documents indexed yet" in response.text

@@ -6,6 +6,7 @@
 <section class="card">
   <h1>Upload document</h1>
   <p class="muted">Upload a PDF, text file, Markdown, or DOCX to index it with Ollama embeddings and query it in chat.</p>
+  <p class="muted">Maximum file size: {{ max_upload_size_mb }} MB.</p>
 
   {% if error %}
   <div class="alert alert-error">{{ error }}</div>
