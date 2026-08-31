@@ -32,7 +32,15 @@ ollama pull qwen2.5:14b
 ollama pull nomic-embed-text
 ```
 
-## Local development
+## Quick start
+
+```bash
+make dev      # start locally with reload
+make test     # run smoke tests
+make docker-up
+```
+
+Or manually:
 
 ```bash
 python -m venv .venv
@@ -62,15 +70,20 @@ Uploaded files and the Chroma index are persisted in `./data/uploads` and `./dat
 2. **Documents** — go to `/documents` to see indexed files, chunk counts, and delete them.
 3. **Chat** — go to `/chat`, optionally filter to one document, and ask questions. Expand "Context used" to inspect retrieved chunks.
 
-## Learning features
+## Features
 
-| Feature | What it teaches |
-|---------|-----------------|
-| Per-document filter | Metadata-scoped vector search |
-| Relevance threshold | When not to call the LLM |
-| Context snippets | Debugging retrieval quality |
-| Chunk counts | How chunking affects indexing |
-| Multi-format upload | Ingestion vs retrieval pipeline |
+| Feature | Description |
+|---------|-------------|
+| Per-document filter | Scope chat to a single uploaded file |
+| Relevance threshold | Skip the LLM when retrieval scores are weak |
+| Context snippets | Inspect retrieved chunks under each answer |
+| Chunk counts | See how many chunks each file produced |
+| Multi-format upload | PDF, TXT, Markdown, DOCX |
+| Empty-index guard | Chat is disabled until documents are indexed |
+| Upload validation | File type, size, and empty-file checks |
+| Health check | `GET /health` reports app and Ollama status |
+| Chat history | Last 50 messages persisted in the browser |
+| Markdown answers | Assistant replies render basic markdown |
 
 ## Configuration
 
@@ -85,8 +98,21 @@ Set via environment variables or `.env`:
 | `CHUNK_OVERLAP` | `200` | Chunk overlap |
 | `RETRIEVAL_K` | `4` | Chunks retrieved per query |
 | `MAX_RETRIEVAL_DISTANCE` | `1.0` | Max L2 distance for the best match; higher = stricter |
+| `MAX_UPLOAD_SIZE_MB` | `20` | Maximum upload size in megabytes |
 
 Lower distance scores mean better matches. If the best retrieved chunk exceeds `MAX_RETRIEVAL_DISTANCE`, the app skips the LLM and returns a "no relevant context" message.
+
+## Health check
+
+```bash
+curl http://localhost:8000/health
+```
+
+Example response:
+
+```json
+{"status": "ok", "ollama": "ok"}
+```
 
 ## Tests
 

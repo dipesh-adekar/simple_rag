@@ -3,6 +3,11 @@
   const messagesEl = document.getElementById("chat-messages");
   const submitBtn = document.getElementById("chat-submit");
   const sourceSelect = document.getElementById("source");
+  const clearBtn = document.getElementById("clear-history");
+  const hasDocuments = form.dataset.hasDocuments === "true";
+
+  const HISTORY_KEY = "chatHistory";
+  const MAX_HISTORY = 50;
 
   const savedMode = localStorage.getItem("chatMode") || "stream";
   const modeInput = document.querySelector(`input[name="mode"][value="${savedMode}"]`);
@@ -13,8 +18,26 @@
     sourceSelect.value = savedSource;
   }
 
+  if (!hasDocuments) {
+    submitBtn.disabled = true;
+    form.question.disabled = true;
+    if (sourceSelect) sourceSelect.disabled = true;
+  }
+
+  loadHistory();
+
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      localStorage.removeItem(HISTORY_KEY);
+      messagesEl.innerHTML = hasDocuments
+        ? '<p class="muted chat-empty">No messages yet. Ask something about your uploaded documents.</p>'
+        : '<div class="alert alert-error chat-empty">No documents indexed yet. <a href="/">Upload a document</a> to start chatting.</div>';
+    });
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!hasDocuments) return;
 
     const question = form.question.value.trim();
     if (!question) return;
@@ -37,15 +60,84 @@
       }
     } finally {
       submitBtn.disabled = false;
+      saveHistory();
     }
   });
+
+  function loadHistory() {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) return;
+
+    try {
+      const history = JSON.parse(raw);
+      if (!Array.isArray(history) || history.length === 0) return;
+
+      messagesEl.innerHTML = "";
+      for (const entry of history) {
+        renderHistoryEntry(entry);
+      }
+      scrollToBottom();
+    } catch {
+      localStorage.removeItem(HISTORY_KEY);
+    }
+  }
+
+  function saveHistory() {
+    const entries = [];
+    for (const messageEl of messagesEl.querySelectorAll(".message")) {
+      const role = messageEl.classList.contains("message-user") ? "user" : "assistant";
+      const contentEl = messageEl.querySelector(".message-content");
+      const entry = {
+        role,
+        content: contentEl.dataset.rawContent || contentEl.textContent || "",
+      };
+
+      const metaEl = messageEl.querySelector(".message-meta");
+      if (metaEl && metaEl.dataset.meta) {
+        entry.meta = JSON.parse(metaEl.dataset.meta);
+      }
+
+      const snippetsEl = messageEl.querySelector(".context-snippets");
+      if (snippetsEl && snippetsEl.dataset.snippets) {
+        entry.snippets = JSON.parse(snippetsEl.dataset.snippets);
+      }
+
+      entries.push(entry);
+    }
+
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(-MAX_HISTORY)));
+  }
+
+  function renderHistoryEntry(entry) {
+    const messageEl = appendMessage(entry.role, entry.content, { persist: false });
+    if (entry.role === "assistant") {
+      setAssistantContent(messageEl.querySelector(".message-content"), entry.content);
+      if (entry.meta) {
+        appendMeta(messageEl, entry.meta.sources || [], entry.meta.contextChunks || 0, entry.meta.relevant);
+      }
+      if (entry.snippets) {
+        appendSnippets(messageEl, entry.snippets);
+      }
+    }
+  }
 
   function removeEmptyState() {
     const empty = messagesEl.querySelector(".chat-empty");
     if (empty) empty.remove();
   }
 
-  function appendMessage(role, content) {
+  function setAssistantContent(contentEl, text) {
+    contentEl.dataset.rawContent = text;
+    contentEl.classList.remove("loading", "streaming");
+    contentEl.innerHTML = window.renderMarkdown(text);
+  }
+
+  function setUserContent(contentEl, text) {
+    contentEl.dataset.rawContent = text;
+    contentEl.textContent = text;
+  }
+
+  function appendMessage(role, content, options = {}) {
     removeEmptyState();
 
     const div = document.createElement("div");
@@ -57,12 +149,21 @@
 
     const contentEl = document.createElement("div");
     contentEl.className = "message-content";
-    contentEl.textContent = content;
+
+    if (role === "assistant") {
+      setAssistantContent(contentEl, content);
+    } else {
+      setUserContent(contentEl, content);
+    }
 
     div.appendChild(roleEl);
     div.appendChild(contentEl);
     messagesEl.appendChild(div);
     scrollToBottom();
+
+    if (options.persist !== false) {
+      saveHistory();
+    }
 
     return div;
   }
@@ -70,6 +171,8 @@
   function appendMeta(messageEl, sources, contextChunks, relevant) {
     const meta = document.createElement("div");
     meta.className = "message-meta";
+    meta.dataset.meta = JSON.stringify({ sources, contextChunks, relevant });
+
     if (relevant === false) {
       meta.textContent = "No relevant context found in your documents.";
     } else if (sources.length) {
@@ -77,6 +180,7 @@
     } else {
       meta.textContent = `${contextChunks} chunk(s) retrieved`;
     }
+
     messageEl.appendChild(meta);
   }
 
@@ -85,6 +189,7 @@
 
     const details = document.createElement("details");
     details.className = "context-snippets";
+    details.dataset.snippets = JSON.stringify(snippets);
 
     const summary = document.createElement("summary");
     summary.textContent = `Context used (${snippets.length} chunk${snippets.length === 1 ? "" : "s"})`;
@@ -124,11 +229,21 @@
     return body;
   }
 
+  async function readErrorDetail(response) {
+    try {
+      const data = await response.json();
+      return data.detail || "Request failed";
+    } catch {
+      return "Request failed";
+    }
+  }
+
   async function handleNormal(question, source) {
     const messageEl = appendMessage("assistant", "");
     const contentEl = messageEl.querySelector(".message-content");
     contentEl.classList.add("loading");
     contentEl.textContent = "Thinking…";
+    delete contentEl.dataset.rawContent;
 
     try {
       const res = await fetch("/chat/query", {
@@ -137,16 +252,21 @@
         body: JSON.stringify(buildRequestBody(question, source)),
       });
 
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        const detail = await readErrorDetail(res);
+        throw new Error(detail);
+      }
 
       const data = await res.json();
       contentEl.classList.remove("loading");
-      contentEl.textContent = data.answer;
+      setAssistantContent(contentEl, data.answer);
       appendMeta(messageEl, data.sources, data.context_chunks, data.relevant);
       appendSnippets(messageEl, data.snippets);
-    } catch {
+      saveHistory();
+    } catch (error) {
       contentEl.classList.remove("loading");
-      contentEl.textContent = "Something went wrong. Please try again.";
+      contentEl.textContent = error.message || "Something went wrong. Please try again.";
+      delete contentEl.dataset.rawContent;
     }
   }
 
@@ -154,6 +274,10 @@
     const messageEl = appendMessage("assistant", "");
     const contentEl = messageEl.querySelector(".message-content");
     contentEl.classList.add("streaming");
+    contentEl.textContent = "";
+    delete contentEl.dataset.rawContent;
+
+    let streamedText = "";
 
     try {
       const res = await fetch("/chat/stream", {
@@ -162,7 +286,10 @@
         body: JSON.stringify(buildRequestBody(question, source)),
       });
 
-      if (!res.ok) throw new Error("Request failed");
+      if (!res.ok) {
+        const detail = await readErrorDetail(res);
+        throw new Error(detail);
+      }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -182,18 +309,22 @@
           const event = JSON.parse(line.slice(6));
 
           if (event.type === "token") {
-            contentEl.textContent += event.content;
+            streamedText += event.content;
+            contentEl.textContent = streamedText;
             scrollToBottom();
           } else if (event.type === "done") {
             contentEl.classList.remove("streaming");
+            setAssistantContent(contentEl, streamedText);
             appendMeta(messageEl, event.sources, event.context_chunks, event.relevant);
             appendSnippets(messageEl, event.snippets);
+            saveHistory();
           }
         }
       }
-    } catch {
+    } catch (error) {
       contentEl.classList.remove("streaming");
-      contentEl.textContent = "Something went wrong. Please try again.";
+      contentEl.textContent = error.message || "Something went wrong. Please try again.";
+      delete contentEl.dataset.rawContent;
     }
   }
 })();

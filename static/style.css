@@ -226,6 +226,63 @@ h1 {
   white-space: pre-wrap;
 }
 
+.message-assistant .message-content {
+  white-space: normal;
+}
+
+.message-assistant .message-content p {
+  margin: 0 0 0.75rem;
+}
+
+.message-assistant .message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.message-assistant .message-content ul,
+.message-assistant .message-content ol {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.message-assistant .message-content li {
+  margin-bottom: 0.25rem;
+}
+
+.message-assistant .message-content code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.25rem;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+.message-assistant .message-content pre {
+  margin: 0 0 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+}
+
+.message-assistant .message-content pre code {
+  padding: 0;
+  background: transparent;
+}
+
+.chat-card .card-header h1 {
+  margin-bottom: 0.25rem;
+}
+
+.chat-card .card-header .muted {
+  margin-bottom: 0;
+}
+
+.alert a {
+  color: inherit;
+  font-weight: 600;
+}
+
 .message-meta {
   margin-top: 0.5rem;
   font-size: 0.85rem;

@@ -4,16 +4,29 @@
 
 {% block content %}
 <section class="card chat-card">
-  <h1>Chat with your documents</h1>
-  <p class="muted">Ask questions against your uploaded documents using qwen2.5:14b.</p>
-
-  <div id="chat-messages" class="chat-messages">
-    <p class="muted chat-empty">No messages yet. Ask something about your uploaded documents.</p>
+  <div class="card-header">
+    <div>
+      <h1>Chat with your documents</h1>
+      <p class="muted">Ask questions against your uploaded documents using qwen2.5:14b.</p>
+    </div>
+    {% if has_documents %}
+    <button type="button" class="btn btn-secondary btn-sm" id="clear-history">Clear history</button>
+    {% endif %}
   </div>
 
-  <form id="chat-form" class="chat-form">
+  <div id="chat-messages" class="chat-messages">
+    {% if has_documents %}
+    <p class="muted chat-empty">No messages yet. Ask something about your uploaded documents.</p>
+    {% else %}
+    <div class="alert alert-error chat-empty">
+      No documents indexed yet. <a href="/">Upload a document</a> to start chatting.
+    </div>
+    {% endif %}
+  </div>
+
+  <form id="chat-form" class="chat-form" data-has-documents="{{ 'true' if has_documents else 'false' }}">
     <label for="source" class="label">Search in</label>
-    <select id="source" name="source" class="input">
+    <select id="source" name="source" class="input" {% if not has_documents %}disabled{% endif %}>
       <option value="">All documents</option>
       {% for doc in documents %}
       <option value="{{ doc.filename }}">{{ doc.filename }}</option>
@@ -27,6 +40,7 @@
       placeholder="What does the document say about..."
       required
       class="input chat-input"
+      {% if not has_documents %}disabled{% endif %}
     ></textarea>
 
     <div class="chat-controls">
@@ -40,12 +54,13 @@
           <span>Normal</span>
         </label>
       </div>
-      <button type="submit" class="btn btn-primary" id="chat-submit">Ask</button>
+      <button type="submit" class="btn btn-primary" id="chat-submit" {% if not has_documents %}disabled{% endif %}>Ask</button>
     </div>
   </form>
 </section>
 {% endblock %}
 
 {% block scripts %}
+<script src="/static/markdown.js"></script>
 <script src="/static/chat.js"></script>
 {% endblock %}
